@@ -4,11 +4,13 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+
   <title>Karate Barcode Scanner</title>
 
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 
   <style>
+
     body {
       font-family: Arial, sans-serif;
       margin: 0;
@@ -41,15 +43,12 @@
       box-shadow: 0 2px 8px rgba(0,0,0,0.1);
     }
 
-    .barcode-value {
+    .barcode {
       font-size: 24px;
       font-weight: bold;
       word-break: break-all;
     }
 
-    .error {
-      color: #b00020;
-    }
   </style>
 
 </head>
@@ -69,186 +68,82 @@
 const APPS_SCRIPT_URL =
 "https://script.google.com/macros/s/AKfycbxMb_v8Vv_7BGQA204OjdLwmv13KtCog7R5iswsKeGSrIGa2ixb1mrjMSsa5H5UNaIVDg/exec";
 
-let lastScanned = "";
-let lastScanTime = 0;
-let lookupInProgress = false;
+let processing = false;
 
 
-/* =========================
-   BARCODE SCANNED
-   ========================= */
+/* ==============================
+   BARCODE FOUND
+   ============================== */
 
 function onScanSuccess(decodedText) {
 
-  const now = Date.now();
-
-  if (lookupInProgress) {
+  if (processing) {
     return;
   }
 
-  if (
-    decodedText === lastScanned &&
-    now - lastScanTime < 3000
-  ) {
-    return;
-  }
-
-  lastScanned = decodedText;
-  lastScanTime = now;
-  lookupInProgress = true;
+  processing = true;
 
   document.getElementById("result").innerHTML =
-    "<b>🔎 Looking up athlete...</b><br><br>" +
-    "<span class='barcode-value'>" +
+    "<b>🔎 Barcode detected</b><br><br>" +
+    "<span class='barcode'>" +
     decodedText +
-    "</span>";
-
-  lookupAthlete(decodedText);
-}
+    "</span><br><br>" +
+    "Looking up athlete...";
 
 
-/* =========================
-   GOOGLE SHEET LOOKUP
-   ========================= */
+  /*
+     Create a hidden iframe.
 
-function lookupAthlete(barcode) {
+     The browser is allowed to load another
+     website inside an iframe even though it
+     cannot use fetch() across domains.
+  */
 
-  const callbackName =
-    "barcodeCallback_" + Date.now();
+  const iframe = document.createElement("iframe");
 
-  const script =
-    document.createElement("script");
+  iframe.style.display = "none";
 
-  let finished = false;
-
-  window[callbackName] = function(result) {
-
-    if (finished) return;
-
-    finished = true;
-
-    if (result && result.success) {
-
-      document.getElementById("result").innerHTML =
-
-        "<h3>✅ Athlete Found</h3>" +
-
-        "<b>Athlete ID:</b><br>" +
-        result.athleteId +
-
-        "<br><br>" +
-
-        "<b>Athlete Name:</b><br>" +
-        result.athleteName +
-
-        "<br><br>" +
-
-        "<b>Barcode:</b><br>" +
-        result.barcode;
-
-    } else {
-
-      document.getElementById("result").innerHTML =
-
-        "<h3>❌ Athlete Not Found</h3>" +
-
-        "<div>" +
-        (result && result.message
-          ? result.message
-          : "Barcode was not found.") +
-        "</div>";
-    }
-
-    cleanup();
-  };
-
-
-  function cleanup() {
-
-    lookupInProgress = false;
-
-    if (script.parentNode) {
-      script.parentNode.removeChild(script);
-    }
-
-    delete window[callbackName];
-  }
-
-
-  script.onerror = function() {
-
-    if (finished) return;
-
-    finished = true;
-
-    document.getElementById("result").innerHTML =
-
-      "<h3 class='error'>❌ Connection Error</h3>" +
-      "<div>Unable to contact Google Sheet.</div>";
-
-    cleanup();
-  };
-
-
-  const requestUrl =
+  iframe.src =
     APPS_SCRIPT_URL +
     "?action=findAthlete" +
     "&barcode=" +
-    encodeURIComponent(barcode) +
-    "&callback=" +
-    encodeURIComponent(callbackName) +
-    "&t=" +
-    Date.now();
+    encodeURIComponent(decodedText);
+
+  document.body.appendChild(iframe);
 
 
-  script.src = requestUrl;
+  /*
+     Keep scanner from repeatedly processing
+     the same barcode.
+  */
 
-  document.body.appendChild(script);
-
-
-  // Safety timeout
   setTimeout(function() {
 
-    if (!finished) {
+    processing = false;
 
-      finished = true;
+  }, 5000);
 
-      document.getElementById("result").innerHTML =
-
-        "<h3 class='error'>❌ Connection Timeout</h3>" +
-        "<div>Google Sheet did not respond.</div>";
-
-      cleanup();
-    }
-
-  }, 10000);
 }
 
 
-/* =========================
-   SCANNER
-   ========================= */
+/* ==============================
+   SCANNER ERROR
+   ============================== */
 
 function onScanFailure(error) {
-  // Ignore continuous scanning failures
+
+  // Continuous scan errors are ignored.
+
 }
 
+
+/* ==============================
+   START CAMERA
+   ============================== */
 
 function startScanner() {
 
-  if (
-    typeof Html5QrcodeScanner ===
-    "undefined"
-  ) {
-
-    document.getElementById("result").innerHTML =
-      "<h3 class='error'>❌ Scanner library did not load.</h3>";
-
-    return;
-  }
-
-
-  const scannerConfig = {
+  const config = {
 
     fps: 10,
 
@@ -260,13 +155,14 @@ function startScanner() {
     formatsToSupport: [
       Html5QrcodeSupportedFormats.CODE_128
     ]
+
   };
 
 
   const scanner =
     new Html5QrcodeScanner(
       "reader",
-      scannerConfig,
+      config,
       false
     );
 
@@ -275,6 +171,7 @@ function startScanner() {
     onScanSuccess,
     onScanFailure
   );
+
 }
 
 
