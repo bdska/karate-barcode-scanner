@@ -46,6 +46,10 @@
       font-weight: bold;
       word-break: break-all;
     }
+
+    .loading {
+      font-size: 18px;
+    }
   </style>
 
 </head>
@@ -62,6 +66,9 @@
 
 <script>
 
+const APPS_SCRIPT_URL =
+  "https://script.google.com/macros/s/AKfycbxMb_v8Vv_7BGQA204OjdLwmv13KtCog7R5iswsKeGSrIGa2ixb1mrjMSsa5H5UNaIVDg/exec";
+
 let lastScanned = "";
 let lastScanTime = 0;
 
@@ -69,10 +76,10 @@ function onScanSuccess(decodedText, decodedResult) {
 
   const now = Date.now();
 
-  // Prevent the same barcode being processed repeatedly
+  // Prevent the same barcode from being processed repeatedly
   if (
     decodedText === lastScanned &&
-    now - lastScanTime < 2000
+    now - lastScanTime < 3000
   ) {
     return;
   }
@@ -81,19 +88,69 @@ function onScanSuccess(decodedText, decodedResult) {
   lastScanTime = now;
 
   document.getElementById("result").innerHTML =
-    "<b>✅ Barcode detected</b><br><br>" +
+    "<div class='loading'>🔎 Looking up athlete...</div>" +
+    "<br>" +
     "<span class='barcode-value'>" +
     decodedText +
     "</span>";
 
-  console.log("Barcode:", decodedText);
+  lookupAthlete(decodedText);
 }
 
 function onScanFailure(error) {
-  // Ignore continuous scan failures
+  // Ignore continuous scanning errors
+}
+
+function lookupAthlete(barcode) {
+
+  const url =
+    APPS_SCRIPT_URL +
+    "?action=findAthlete&barcode=" +
+    encodeURIComponent(barcode);
+
+  fetch(url)
+    .then(response => response.json())
+    .then(result => {
+
+      if (!result.success) {
+
+        document.getElementById("result").innerHTML =
+          "<h3>❌ Athlete Not Found</h3>" +
+          "<div>" +
+          result.message +
+          "</div>";
+
+        return;
+      }
+
+      document.getElementById("result").innerHTML =
+        "<h3>✅ Athlete Found</h3>" +
+
+        "<b>Athlete ID:</b><br>" +
+        result.athleteId +
+
+        "<br><br>" +
+
+        "<b>Athlete Name:</b><br>" +
+        result.athleteName +
+
+        "<br><br>" +
+
+        "<b>Barcode:</b><br>" +
+        result.barcode;
+    })
+    .catch(error => {
+
+      document.getElementById("result").innerHTML =
+        "<h3>❌ Connection Error</h3>" +
+        "<div>" +
+        error.message +
+        "</div>";
+    });
 }
 
 const scannerConfig = {
+
   fps: 10,
 
   qrbox: {
