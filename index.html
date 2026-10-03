@@ -1,9 +1,13 @@
 <!DOCTYPE html>
-
 <html>
 <head>
+
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1"
+  >
 
   <title>Karate Barcode Scanner</title>
 
@@ -44,9 +48,19 @@
     }
 
     .barcode {
-      font-size: 24px;
+      font-size: 22px;
       font-weight: bold;
       word-break: break-all;
+    }
+
+    .success {
+      color: green;
+      font-weight: bold;
+    }
+
+    .error {
+      color: red;
+      font-weight: bold;
     }
 
   </style>
@@ -55,130 +69,233 @@
 
 <body>
 
-<h2>📷 Karate Barcode Scanner</h2>
+  <h2>📷 Karate Barcode Scanner</h2>
 
-<div id="reader"></div>
+  <div id="reader"></div>
 
-<div id="result">
-  Starting scanner...
-</div>
+  <div id="result">
+    Starting scanner...
+  </div>
+
 
 <script>
 
-const APPS_SCRIPT_URL =
-"https://script.google.com/macros/s/AKfycbxMb_v8Vv_7BGQA204OjdLwmv13KtCog7R5iswsKeGSrIGa2ixb1mrjMSsa5H5UNaIVDg/exec";
+  // ==========================================
+  // LATEST APPS SCRIPT WEB APP
+  // ==========================================
 
-let processing = false;
+  const APPS_SCRIPT_URL =
+    "https://script.google.com/macros/s/AKfycbzmUCBe0R4JnjM7CLt2Ksav5G_p99_xdPNMcvXtpDVytDEfMlCOrgSu66uyqfxEzYfX7Q/exec";
 
 
-/* ==============================
-   BARCODE FOUND
-   ============================== */
+  let processing = false;
 
-function onScanSuccess(decodedText) {
 
-  if (processing) {
-    return;
+  // ==========================================
+  // BARCODE FOUND
+  // ==========================================
+
+  function onScanSuccess(decodedText) {
+
+    if (processing) {
+      return;
+    }
+
+    processing = true;
+
+
+    document.getElementById("result").innerHTML =
+      "<b>🔎 Barcode detected</b><br><br>" +
+      "<span class='barcode'>" +
+      decodedText +
+      "</span><br><br>" +
+      "Looking up athlete...";
+
+
+    lookupAthlete(decodedText);
+
   }
 
-  processing = true;
 
-  document.getElementById("result").innerHTML =
-    "<b>🔎 Barcode detected</b><br><br>" +
-    "<span class='barcode'>" +
-    decodedText +
-    "</span><br><br>" +
-    "Looking up athlete...";
+  // ==========================================
+  // LOOK UP ATHLETE
+  // ==========================================
 
+  function lookupAthlete(barcode) {
 
-  /*
-     Create a hidden iframe.
-
-     The browser is allowed to load another
-     website inside an iframe even though it
-     cannot use fetch() across domains.
-  */
-
-  const iframe = document.createElement("iframe");
-
-  iframe.style.display = "none";
-
-  iframe.src =
-    APPS_SCRIPT_URL +
-    "?action=findAthlete" +
-    "&barcode=" +
-    encodeURIComponent(decodedText);
-
-  document.body.appendChild(iframe);
+    const callbackName =
+      "barcodeLookup_" + Date.now();
 
 
-  /*
-     Keep scanner from repeatedly processing
-     the same barcode.
-  */
+    window[callbackName] =
+      function(result) {
 
-  setTimeout(function() {
-
-    processing = false;
-
-  }, 5000);
-
-}
+        // Remove callback
+        try {
+          delete window[callbackName];
+        } catch (e) {}
 
 
-/* ==============================
-   SCANNER ERROR
-   ============================== */
+        if (!result || !result.success) {
 
-function onScanFailure(error) {
+          document.getElementById("result").innerHTML =
+            "<div class='error'>" +
+            "❌ " +
+            (result
+              ? result.message
+              : "Athlete not found.") +
+            "</div>";
 
-  // Continuous scan errors are ignored.
+          processing = false;
 
-}
-
-
-/* ==============================
-   START CAMERA
-   ============================== */
-
-function startScanner() {
-
-  const config = {
-
-    fps: 10,
-
-    qrbox: {
-      width: 300,
-      height: 120
-    },
-
-    formatsToSupport: [
-      Html5QrcodeSupportedFormats.CODE_128
-    ]
-
-  };
+          return;
+        }
 
 
-  const scanner =
-    new Html5QrcodeScanner(
-      "reader",
-      config,
-      false
+        // ======================================
+        // ATHLETE FOUND
+        // ======================================
+
+        document.getElementById("result").innerHTML =
+
+          "<div class='success'>" +
+          "✅ Athlete Found" +
+          "</div>" +
+
+          "<br>" +
+
+          "<b>Athlete ID:</b><br>" +
+          result.athleteId +
+
+          "<br><br>" +
+
+          "<b>Athlete Name:</b><br>" +
+          result.athleteName +
+
+          "<br><br>" +
+
+          "<b>Barcode:</b><br>" +
+          result.barcode;
+
+
+        processing = false;
+
+      };
+
+
+    const url =
+      APPS_SCRIPT_URL +
+      "?action=findAthlete" +
+      "&barcode=" +
+      encodeURIComponent(barcode) +
+      "&callback=" +
+      callbackName;
+
+
+    const script =
+      document.createElement("script");
+
+
+    script.src = url;
+
+
+    script.onerror =
+      function() {
+
+        document.getElementById("result").innerHTML =
+          "<div class='error'>" +
+          "❌ Connection error." +
+          "</div>";
+
+        processing = false;
+
+      };
+
+
+    document.body.appendChild(script);
+
+
+    // Timeout protection
+
+    setTimeout(function() {
+
+      if (window[callbackName]) {
+
+        document.getElementById("result").innerHTML =
+          "<div class='error'>" +
+          "❌ Google Sheet response timed out." +
+          "</div>";
+
+        processing = false;
+
+        try {
+          delete window[callbackName];
+        } catch (e) {}
+
+      }
+
+    }, 10000);
+
+  }
+
+
+  // ==========================================
+  // SCANNER FAILURE
+  // ==========================================
+
+  function onScanFailure(error) {
+
+    // Ignore continuous scanning errors.
+
+  }
+
+
+  // ==========================================
+  // START CAMERA
+  // ==========================================
+
+  function startScanner() {
+
+    const config = {
+
+      fps: 10,
+
+      qrbox: {
+        width: 300,
+        height: 120
+      },
+
+      formatsToSupport: [
+        Html5QrcodeSupportedFormats.CODE_128
+      ]
+
+    };
+
+
+    const scanner =
+      new Html5QrcodeScanner(
+        "reader",
+        config,
+        false
+      );
+
+
+    scanner.render(
+      onScanSuccess,
+      onScanFailure
     );
 
+  }
 
-  scanner.render(
-    onScanSuccess,
-    onScanFailure
+
+  // ==========================================
+  // START WHEN PAGE LOADS
+  // ==========================================
+
+  window.addEventListener(
+    "load",
+    startScanner
   );
-
-}
-
-
-window.addEventListener(
-  "load",
-  startScanner
-);
 
 </script>
 
