@@ -97,31 +97,32 @@ function onScanSuccess(decodedText, decodedResult) {
   lookupAthlete(decodedText);
 }
 
-function onScanFailure(error) {
-  // Ignore continuous scanning errors
-}
-
 function lookupAthlete(barcode) {
+
+  const callbackName =
+    "barcodeLookup_" + Date.now();
+
+  const script = document.createElement("script");
 
   const url =
     APPS_SCRIPT_URL +
-    "?action=findAthlete&barcode=" +
-    encodeURIComponent(barcode);
+    "?action=findAthlete" +
+    "&barcode=" +
+    encodeURIComponent(barcode) +
+    "&callback=" +
+    callbackName;
 
-  fetch(url)
-    .then(response => response.json())
-    .then(result => {
+  window[callbackName] = function(result) {
 
-      if (!result.success) {
+    if (!result.success) {
 
-        document.getElementById("result").innerHTML =
-          "<h3>❌ Athlete Not Found</h3>" +
-          "<div>" +
-          result.message +
-          "</div>";
+      document.getElementById("result").innerHTML =
+        "<h3>❌ Athlete Not Found</h3>" +
+        "<div>" +
+        result.message +
+        "</div>";
 
-        return;
-      }
+    } else {
 
       document.getElementById("result").innerHTML =
         "<h3>✅ Athlete Found</h3>" +
@@ -138,15 +139,26 @@ function lookupAthlete(barcode) {
 
         "<b>Barcode:</b><br>" +
         result.barcode;
-    })
-    .catch(error => {
+    }
 
-      document.getElementById("result").innerHTML =
-        "<h3>❌ Connection Error</h3>" +
-        "<div>" +
-        error.message +
-        "</div>";
-    });
+    // Clean up
+    document.body.removeChild(script);
+    delete window[callbackName];
+  };
+
+  script.src = url;
+
+  script.onerror = function() {
+
+    document.getElementById("result").innerHTML =
+      "<h3>❌ Connection Error</h3>" +
+      "<div>Unable to contact Google Sheet.</div>";
+
+    document.body.removeChild(script);
+    delete window[callbackName];
+  };
+
+  document.body.appendChild(script);
 }
 
 const scannerConfig = {
