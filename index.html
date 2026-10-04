@@ -446,15 +446,7 @@ function createMealButton(
 function issueMeal(meal, clickedButton) {
 
   const buttons =
-    document.querySelectorAll(
-      ".meal-button"
-    );
-
-  // Temporarily disable all meal buttons
-  // while the request is being processed.
-  buttons.forEach(function(button) {
-    button.disabled = true;
-  });
+    document.querySelectorAll(".meal-button");
 
   const currentPerson =
     currentFoodPerson;
@@ -465,15 +457,19 @@ function issueMeal(meal, clickedButton) {
       "Person information is missing."
     );
 
-    buttons.forEach(function(button) {
-      button.disabled = false;
-    });
-
     return;
   }
 
+
+  // Temporarily disable all buttons
+  buttons.forEach(function(button) {
+    button.disabled = true;
+  });
+
+
   const callbackName =
     "foodIssue_" + Date.now();
+
 
   window[callbackName] =
     function(result) {
@@ -481,6 +477,11 @@ function issueMeal(meal, clickedButton) {
       try {
         delete window[callbackName];
       } catch (e) {}
+
+
+      // ==========================================
+      // ISSUE FAILED
+      // ==========================================
 
       if (!result || !result.success) {
 
@@ -490,65 +491,131 @@ function issueMeal(meal, clickedButton) {
             : "Meal could not be issued."
         );
 
-        // Re-enable all buttons if issue failed.
+        // Restore the correct existing status
         buttons.forEach(function(button) {
-          button.disabled = false;
+
+          const buttonMeal =
+            button.innerText
+              .replace(" — ISSUED", "")
+              .trim();
+
+          const alreadyIssued =
+            Array.isArray(currentPerson.issuedMeals) &&
+            currentPerson.issuedMeals.some(function(item) {
+
+              return String(item)
+                .trim()
+                .toUpperCase() ===
+                buttonMeal
+                  .trim()
+                  .toUpperCase();
+
+            });
+
+          button.disabled = alreadyIssued;
+
         });
 
         return;
       }
 
+
       // ==========================================
       // SUCCESS
-      // ONLY THE CLICKED MEAL STAYS DISABLED
       // ==========================================
 
-      if (clickedButton) {
-
-        clickedButton.disabled = true;
-
-        clickedButton.style.backgroundColor =
-          "#bdbdbd";
-
-        clickedButton.style.color =
-          "#666";
-
-        clickedButton.style.cursor =
-          "not-allowed";
-
-        clickedButton.innerHTML =
-          meal + " — ISSUED";
+      // Add newly issued meal to the person's
+      // issued-meals list.
+      if (!Array.isArray(currentPerson.issuedMeals)) {
+        currentPerson.issuedMeals = [];
       }
 
-      // Re-enable the other meal buttons.
-      
-  
-// Show successful issue message
-const successMessage =
-  document.createElement("div");
+      currentPerson.issuedMeals.push(meal);
 
-successMessage.className =
-  "success";
 
-successMessage.innerHTML =
-  "✅ " + result.message;
+      // Remove duplicates from issuedMeals
+      currentPerson.issuedMeals =
+        currentPerson.issuedMeals.filter(
+          function(item, index, array) {
 
-document.getElementById("result")
-  .insertBefore(
-    successMessage,
-    document.getElementById("result").firstChild
-  );
+            return array.findIndex(
+              function(x) {
 
-// Keep the meal buttons visible.
-// Only the successfully issued button is disabled.
-if (clickedButton) {
+                return String(x)
+                  .trim()
+                  .toUpperCase() ===
+                  String(item)
+                    .trim()
+                    .toUpperCase();
 
-  clickedButton.disabled = true;
+              }
+            ) === index;
 
-  clickedButton.innerHTML =
-    meal + " — ISSUED";
+          }
+        );
 
-}
+
+      // ==========================================
+      // UPDATE ALL BUTTONS
+      // ==========================================
+
+      buttons.forEach(function(button) {
+
+        const buttonMeal =
+          button.innerText
+            .replace(" — ISSUED", "")
+            .trim();
+
+        const alreadyIssued =
+          currentPerson.issuedMeals.some(
+            function(item) {
+
+              return String(item)
+                .trim()
+                .toUpperCase() ===
+                buttonMeal
+                  .trim()
+                  .toUpperCase();
+
+            }
+          );
+
+        if (alreadyIssued) {
+
+          button.disabled = true;
+
+          button.innerHTML =
+            buttonMeal +
+            " — ISSUED";
+
+        } else {
+
+          button.disabled = false;
+
+        }
+
+      });
+
+
+      // ==========================================
+      // SUCCESS MESSAGE
+      // ==========================================
+
+      const successMessage =
+        document.createElement("div");
+
+      successMessage.className =
+        "success";
+
+      successMessage.innerHTML =
+        "✅ " + result.message;
+
+      document.getElementById("result")
+        .insertBefore(
+          successMessage,
+          document.getElementById("result")
+            .firstChild
+        );
 
     };
 
