@@ -449,6 +449,8 @@ function issueMeal(meal, clickedButton) {
 
   const buttons =
     document.querySelectorAll(".meal-button");
+  const currentPerson =
+  currentFoodPerson;
 
   const currentPerson =
     currentFoodPerson;
@@ -464,9 +466,8 @@ function issueMeal(meal, clickedButton) {
 
 
   // Temporarily disable all buttons
-  buttons.forEach(function(button) {
-    button.disabled = true;
-  });
+  clickedButton.disabled = true;
+clickedButton.innerHTML = "⏳ PROCESSING...";
 
 
   const callbackName =
