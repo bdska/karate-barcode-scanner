@@ -478,19 +478,33 @@ function issueMeal(meal, clickedButton) {
 
       });
 
-      document.getElementById("result").innerHTML =
-        "<div class='success'>" +
-        "✅ " +
-        result.message +
-        "</div><br>" +
+  
+// Show successful issue message
+const successMessage =
+  document.createElement("div");
 
-        "<div class='name'>" +
-        currentPerson.name +
-        "</div>" +
+successMessage.className =
+  "success";
 
-        "<div class='role'>" +
-        currentPerson.role +
-        "</div><br>";
+successMessage.innerHTML =
+  "✅ " + result.message;
+
+document.getElementById("result")
+  .insertBefore(
+    successMessage,
+    document.getElementById("result").firstChild
+  );
+
+// Keep the meal buttons visible.
+// Only the successfully issued button is disabled.
+if (clickedButton) {
+
+  clickedButton.disabled = true;
+
+  clickedButton.innerHTML =
+    meal + " — ISSUED";
+
+}
 
     };
 
