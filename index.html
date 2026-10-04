@@ -1,3 +1,4 @@
+```html
 <!DOCTYPE html>
 <html>
 <head>
@@ -97,6 +98,11 @@
       cursor: pointer;
       background: #1976d2;
       color: white;
+    }
+
+    .meal-button:disabled {
+      background: #999;
+      cursor: not-allowed;
     }
 
     .success {
@@ -256,13 +262,17 @@
     ) {
 
       html +=
-        "<button class='meal-button'>" +
-        "🍱 LUNCH 1" +
-        "</button>" +
+        createMealButton(
+          "🍱 LUNCH 1",
+          "Lunch 1",
+          person
+        ) +
 
-        "<button class='meal-button'>" +
-        "🍱 LUNCH 2" +
-        "</button>";
+        createMealButton(
+          "🍱 LUNCH 2",
+          "Lunch 2",
+          person
+        );
 
     }
 
@@ -273,21 +283,29 @@
     ) {
 
       html +=
-        "<button class='meal-button'>" +
-        "☕ BREAKFAST 1" +
-        "</button>" +
+        createMealButton(
+          "☕ BREAKFAST 1",
+          "Breakfast 1",
+          person
+        ) +
 
-        "<button class='meal-button'>" +
-        "🍱 LUNCH 1" +
-        "</button>" +
+        createMealButton(
+          "🍱 LUNCH 1",
+          "Lunch 1",
+          person
+        ) +
 
-        "<button class='meal-button'>" +
-        "☕ BREAKFAST 2" +
-        "</button>" +
+        createMealButton(
+          "☕ BREAKFAST 2",
+          "Breakfast 2",
+          person
+        ) +
 
-        "<button class='meal-button'>" +
-        "🍱 LUNCH 2" +
-        "</button>";
+        createMealButton(
+          "🍱 LUNCH 2",
+          "Lunch 2",
+          person
+        );
 
     }
 
@@ -297,21 +315,29 @@
     ) {
 
       html +=
-        "<button class='meal-button'>" +
-        "☕ BREAKFAST 1" +
-        "</button>" +
+        createMealButton(
+          "☕ BREAKFAST 1",
+          "Breakfast 1",
+          person
+        ) +
 
-        "<button class='meal-button'>" +
-        "🍱 LUNCH 1" +
-        "</button>" +
+        createMealButton(
+          "🍱 LUNCH 1",
+          "Lunch 1",
+          person
+        ) +
 
-        "<button class='meal-button'>" +
-        "☕ BREAKFAST 2" +
-        "</button>" +
+        createMealButton(
+          "☕ BREAKFAST 2",
+          "Breakfast 2",
+          person
+        ) +
 
-        "<button class='meal-button'>" +
-        "🍱 LUNCH 2" +
-        "</button>";
+        createMealButton(
+          "🍱 LUNCH 2",
+          "Lunch 2",
+          person
+        );
 
     }
 
@@ -328,6 +354,190 @@
 
     document.getElementById("result").innerHTML =
       html;
+
+  }
+
+
+  function createMealButton(
+    label,
+    meal,
+    person
+  ) {
+
+    return (
+      "<button " +
+      "class='meal-button' " +
+      "onclick='issueMeal(" +
+      JSON.stringify(meal) +
+      ")'>" +
+      label +
+      "</button>"
+    );
+
+  }
+
+
+  function issueMeal(meal) {
+
+    const buttons =
+      document.querySelectorAll(
+        ".meal-button"
+      );
+
+    buttons.forEach(function(button) {
+      button.disabled = true;
+    });
+
+
+    const currentPerson =
+      window.currentFoodPerson;
+
+
+    if (!currentPerson) {
+
+      showError(
+        "Person information is missing."
+      );
+
+      return;
+    }
+
+
+    const callbackName =
+      "foodIssue_" + Date.now();
+
+
+    window[callbackName] =
+      function(result) {
+
+        try {
+          delete window[callbackName];
+        } catch (e) {}
+
+
+        if (!result || !result.success) {
+
+          showError(
+            result
+              ? result.message
+              : "Meal could not be issued."
+          );
+
+          buttons.forEach(function(button) {
+            button.disabled = false;
+          });
+
+          return;
+        }
+
+
+        document.getElementById("result").innerHTML =
+          "<div class='success'>" +
+          "✅ " +
+          result.message +
+          "</div><br>" +
+
+          "<div class='name'>" +
+          currentPerson.name +
+          "</div>" +
+
+          "<div class='role'>" +
+          currentPerson.role +
+          "</div><br>" +
+
+          "<button " +
+          "class='meal-button' " +
+          "onclick='scanNext()'>" +
+          "📷 SCAN NEXT" +
+          "</button>";
+
+      };
+
+
+    const url =
+      APPS_SCRIPT_URL +
+      "?action=issueFood" +
+      "&personId=" +
+      encodeURIComponent(
+        currentPerson.personId || ""
+      ) +
+      "&name=" +
+      encodeURIComponent(
+        currentPerson.name || ""
+      ) +
+      "&role=" +
+      encodeURIComponent(
+        currentPerson.role || ""
+      ) +
+      "&meal=" +
+      encodeURIComponent(meal) +
+      "&callback=" +
+      callbackName;
+
+
+    const script =
+      document.createElement("script");
+
+    script.src = url;
+
+
+    script.onerror =
+      function() {
+
+        showError(
+          "Connection error while issuing meal."
+        );
+
+        buttons.forEach(function(button) {
+          button.disabled = false;
+        });
+
+      };
+
+
+    document.body.appendChild(script);
+
+
+    setTimeout(function() {
+
+      if (window[callbackName]) {
+
+        showError(
+          "Google Sheet response timed out."
+        );
+
+        buttons.forEach(function(button) {
+          button.disabled = false;
+        });
+
+        try {
+          delete window[callbackName];
+        } catch (e) {}
+
+      }
+
+    }, 10000);
+
+  }
+
+
+  function showError(message) {
+
+    document.getElementById("result").innerHTML =
+      "<div class='error'>" +
+      "❌ " +
+      message +
+      "</div>";
+
+  }
+
+
+  function scanNext() {
+
+    window.currentFoodPerson = null;
+
+    document.getElementById("result").innerHTML =
+      "Ready to scan next person...";
 
   }
 
@@ -376,7 +586,9 @@
     startScanner
   );
 
+
 </script>
 
 </body>
 </html>
+```
