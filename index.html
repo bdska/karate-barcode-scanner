@@ -137,6 +137,8 @@
 
   let processing = false;
 
+  let currentFoodPerson = null;
+
 
   function onScanSuccess(decodedText) {
 
@@ -239,7 +241,7 @@
 
   function showFoodOptions(person) {
 
-    window.currentFoodPerson = person;
+    currentFoodPerson = person;
 
     let html =
 
@@ -392,7 +394,7 @@
 
 
     const currentPerson =
-      window.currentFoodPerson;
+  currentFoodPerson;
 
 
     if (!currentPerson) {
