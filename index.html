@@ -362,23 +362,35 @@ BDSKA
   }
 
 
-  function createMealButton(
-    label,
-    meal,
-    person
-  ) {
+function createMealButton(
+  label,
+  meal,
+  person
+) {
 
-    return (
-      "<button " +
-      "class='meal-button' " +
-      "onclick='issueMeal(" +
-      JSON.stringify(meal) +
-      ")'>" +
-      label +
-      "</button>"
-    );
+  const safeMeal =
+    JSON.stringify(meal);
 
-  }
+  const buttonId =
+    "meal-" +
+    String(meal)
+      .toLowerCase()
+      .replace(/\s+/g, "-");
+
+  return (
+    "<button " +
+    "id='" + buttonId + "' " +
+    "class='meal-button' " +
+    "onclick='issueMeal(" +
+    safeMeal +
+    ", this)'>" +
+    label +
+    "</button>"
+  );
+
+}
+
+
 
 
   function issueMeal(meal) {
