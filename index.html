@@ -241,125 +241,139 @@ BDSKA
 
   function showFoodOptions(person) {
 
-    currentFoodPerson = person;
+  currentFoodPerson = person;
 
-    let html =
+  let html =
 
-      "<div class='name'>" +
-      person.name +
-      "</div>" +
+    "<div class='name'>" +
+    person.name +
+    "</div>" +
 
-      "<div class='role'>" +
-      person.role +
-      "</div>";
-
-
-    const role =
-      String(person.role || "")
-        .trim()
-        .toUpperCase();
+    "<div class='role'>" +
+    person.role +
+    "</div>";
 
 
-    if (
-      role === "ATHLETE" ||
-      role === "VENDORS"
-    ) {
+  // ==========================================
+  // GET ALREADY ISSUED MEALS
+  // ==========================================
 
-      html +=
-        createMealButton(
-          "🍱 LUNCH 1",
-          "Lunch 1",
-          person
-        ) +
-
-        createMealButton(
-          "🍱 LUNCH 2",
-          "Lunch 2",
-          person
-        );
-
-    }
+  const issuedMeals =
+    Array.isArray(person.issuedMeals)
+      ? person.issuedMeals.map(function(meal) {
+          return String(meal)
+            .trim()
+            .toUpperCase();
+        })
+      : [];
 
 
-    else if (
-      role === "OFFICIALS" ||
-      role === "GUEST"
-    ) {
-
-      html +=
-        createMealButton(
-          "☕ BREAKFAST 1",
-          "Breakfast 1",
-          person
-        ) +
-
-        createMealButton(
-          "🍱 LUNCH 1",
-          "Lunch 1",
-          person
-        ) +
-
-        createMealButton(
-          "☕ BREAKFAST 2",
-          "Breakfast 2",
-          person
-        ) +
-
-        createMealButton(
-          "🍱 LUNCH 2",
-          "Lunch 2",
-          person
-        );
-
-    }
+  const role =
+    String(person.role || "")
+      .trim()
+      .toUpperCase();
 
 
-    else if (
-      role === "REFEREES"
-    ) {
+  if (
+    role === "ATHLETE" ||
+    role === "VENDORS"
+  ) {
 
-      html +=
-        createMealButton(
-          "☕ BREAKFAST 1",
-          "Breakfast 1",
-          person
-        ) +
+    html +=
+      createMealButton(
+        "🍱 LUNCH 1",
+        "Lunch 1",
+        person
+      ) +
 
-        createMealButton(
-          "🍱 LUNCH 1",
-          "Lunch 1",
-          person
-        ) +
-
-        createMealButton(
-          "☕ BREAKFAST 2",
-          "Breakfast 2",
-          person
-        ) +
-
-        createMealButton(
-          "🍱 LUNCH 2",
-          "Lunch 2",
-          person
-        );
-
-    }
-
-
-    else {
-
-      html +=
-        "<div class='error'>" +
-        "❌ Unknown person type" +
-        "</div>";
-
-    }
-
-
-    document.getElementById("result").innerHTML =
-      html;
+      createMealButton(
+        "🍱 LUNCH 2",
+        "Lunch 2",
+        person
+      );
 
   }
+
+
+  else if (
+    role === "OFFICIALS" ||
+    role === "GUEST"
+  ) {
+
+    html +=
+      createMealButton(
+        "☕ BREAKFAST 1",
+        "Breakfast 1",
+        person
+      ) +
+
+      createMealButton(
+        "🍱 LUNCH 1",
+        "Lunch 1",
+        person
+      ) +
+
+      createMealButton(
+        "☕ BREAKFAST 2",
+        "Breakfast 2",
+        person
+      ) +
+
+      createMealButton(
+        "🍱 LUNCH 2",
+        "Lunch 2",
+        person
+      );
+
+  }
+
+
+  else if (
+    role === "REFEREES"
+  ) {
+
+    html +=
+      createMealButton(
+        "☕ BREAKFAST 1",
+        "Breakfast 1",
+        person
+      ) +
+
+      createMealButton(
+        "🍱 LUNCH 1",
+        "Lunch 1",
+        person
+      ) +
+
+      createMealButton(
+        "☕ BREAKFAST 2",
+        "Breakfast 2",
+        person
+      ) +
+
+      createMealButton(
+        "🍱 LUNCH 2",
+        "Lunch 2",
+        person
+      );
+
+  }
+
+
+  else {
+
+    html +=
+      "<div class='error'>" +
+      "❌ Unknown person type" +
+      "</div>";
+
+  }
+
+
+  document.getElementById("result").innerHTML =
+    html;
+
+}
 
 
 function createMealButton(
@@ -377,6 +391,43 @@ function createMealButton(
       .toLowerCase()
       .replace(/\s+/g, "-");
 
+
+  // Check whether this meal was already issued
+  const issuedMeals =
+    Array.isArray(person.issuedMeals)
+      ? person.issuedMeals.map(function(item) {
+          return String(item)
+            .trim()
+            .toUpperCase();
+        })
+      : [];
+
+
+  const alreadyIssued =
+    issuedMeals.indexOf(
+      String(meal)
+        .trim()
+        .toUpperCase()
+    ) !== -1;
+
+
+  // Already issued → grey and disabled
+  if (alreadyIssued) {
+
+    return (
+      "<button " +
+      "id='" + buttonId + "' " +
+      "class='meal-button' " +
+      "disabled>" +
+      label +
+      " — ISSUED" +
+      "</button>"
+    );
+
+  }
+
+
+  // Not issued → normal active button
   return (
     "<button " +
     "id='" + buttonId + "' " +
