@@ -392,149 +392,176 @@ function createMealButton(
 
 
 
+function issueMeal(meal, clickedButton) {
 
-  function issueMeal(meal) {
+  const buttons =
+    document.querySelectorAll(
+      ".meal-button"
+    );
 
-    const buttons =
-      document.querySelectorAll(
-        ".meal-button"
-      );
+  // Temporarily disable all meal buttons
+  // while the request is being processed.
+  buttons.forEach(function(button) {
+    button.disabled = true;
+  });
+
+  const currentPerson =
+    currentFoodPerson;
+
+  if (!currentPerson) {
+
+    showError(
+      "Person information is missing."
+    );
 
     buttons.forEach(function(button) {
-      button.disabled = true;
+      button.disabled = false;
     });
 
+    return;
+  }
 
-    const currentPerson =
-  currentFoodPerson;
+  const callbackName =
+    "foodIssue_" + Date.now();
 
+  window[callbackName] =
+    function(result) {
 
-    if (!currentPerson) {
+      try {
+        delete window[callbackName];
+      } catch (e) {}
 
-      showError(
-        "Person information is missing."
-      );
-
-      return;
-    }
-
-
-    const callbackName =
-      "foodIssue_" + Date.now();
-
-
-    window[callbackName] =
-      function(result) {
-
-        try {
-          delete window[callbackName];
-        } catch (e) {}
-
-
-        if (!result || !result.success) {
-
-          showError(
-            result
-              ? result.message
-              : "Meal could not be issued."
-          );
-
-          buttons.forEach(function(button) {
-            button.disabled = false;
-          });
-
-          return;
-        }
-
-
-        document.getElementById("result").innerHTML =
-          "<div class='success'>" +
-          "✅ " +
-          result.message +
-          "</div><br>" +
-
-          "<div class='name'>" +
-          currentPerson.name +
-          "</div>" +
-
-          "<div class='role'>" +
-          currentPerson.role +
-          "</div><br>" +
-
-          "<button " +
-          "class='meal-button' " +
-          "onclick='scanNext()'>" +
-          "📷 SCAN NEXT" +
-          "</button>";
-
-      };
-
-
-    const url =
-      APPS_SCRIPT_URL +
-      "?action=issueFood" +
-      "&personId=" +
-      encodeURIComponent(
-        currentPerson.personId || ""
-      ) +
-      "&name=" +
-      encodeURIComponent(
-        currentPerson.name || ""
-      ) +
-      "&role=" +
-      encodeURIComponent(
-        currentPerson.role || ""
-      ) +
-      "&meal=" +
-      encodeURIComponent(meal) +
-      "&callback=" +
-      callbackName;
-
-
-    const script =
-      document.createElement("script");
-
-    script.src = url;
-
-
-    script.onerror =
-      function() {
+      if (!result || !result.success) {
 
         showError(
-          "Connection error while issuing meal."
+          result
+            ? result.message
+            : "Meal could not be issued."
         );
 
+        // Re-enable all buttons if issue failed.
         buttons.forEach(function(button) {
           button.disabled = false;
         });
 
-      };
-
-
-    document.body.appendChild(script);
-
-
-    setTimeout(function() {
-
-      if (window[callbackName]) {
-
-        showError(
-          "Google Sheet response timed out."
-        );
-
-        buttons.forEach(function(button) {
-          button.disabled = false;
-        });
-
-        try {
-          delete window[callbackName];
-        } catch (e) {}
-
+        return;
       }
 
-    }, 10000);
+      // ==========================================
+      // SUCCESS
+      // ONLY THE CLICKED MEAL STAYS DISABLED
+      // ==========================================
 
-  }
+      if (clickedButton) {
+
+        clickedButton.disabled = true;
+
+        clickedButton.style.backgroundColor =
+          "#bdbdbd";
+
+        clickedButton.style.color =
+          "#666";
+
+        clickedButton.style.cursor =
+          "not-allowed";
+
+        clickedButton.innerHTML =
+          meal + " — ISSUED";
+      }
+
+      // Re-enable the other meal buttons.
+      buttons.forEach(function(button) {
+
+        if (button !== clickedButton) {
+          button.disabled = false;
+        }
+
+      });
+
+      document.getElementById("result").innerHTML =
+        "<div class='success'>" +
+        "✅ " +
+        result.message +
+        "</div><br>" +
+
+        "<div class='name'>" +
+        currentPerson.name +
+        "</div>" +
+
+        "<div class='role'>" +
+        currentPerson.role +
+        "</div><br>";
+
+    };
+
+
+  const url =
+    APPS_SCRIPT_URL +
+    "?action=issueFood" +
+    "&personId=" +
+    encodeURIComponent(
+      currentPerson.personId || ""
+    ) +
+    "&name=" +
+    encodeURIComponent(
+      currentPerson.name || ""
+    ) +
+    "&role=" +
+    encodeURIComponent(
+      currentPerson.role || ""
+    ) +
+    "&meal=" +
+    encodeURIComponent(meal) +
+    "&callback=" +
+    callbackName;
+
+
+  const script =
+    document.createElement("script");
+
+  script.src = url;
+
+
+  script.onerror =
+    function() {
+
+      showError(
+        "Connection error while issuing meal."
+      );
+
+      buttons.forEach(function(button) {
+        button.disabled = false;
+      });
+
+    };
+
+
+  document.body.appendChild(script);
+
+
+  setTimeout(function() {
+
+    if (window[callbackName]) {
+
+      showError(
+        "Google Sheet response timed out."
+      );
+
+      buttons.forEach(function(button) {
+        button.disabled = false;
+      });
+
+      try {
+        delete window[callbackName];
+      } catch (e) {}
+
+    }
+
+  }, 10000);
+
+}
+
+
 
 
   function showError(message) {
